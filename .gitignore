@@ -27,6 +27,8 @@ config/local.json
 config/migration.json
 config/migrationDb.json
 
+.env
+
 npm-debug.log
 build.log
 test-*.js

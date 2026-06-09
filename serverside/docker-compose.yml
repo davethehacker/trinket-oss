@@ -2,10 +2,11 @@ services:
   # Nginx reverse proxy - single entry point
   nginx:
     build: ./nginx
-    ports:
-      - "8080:80"
-      # Uncomment for SSL:
-      # - "8443:443"
+    restart: unless-stopped
+    # No host port published - reached only through the main Traefik instance,
+    # which terminates TLS and routes /pygame* here (see labels below).
+    # ports:
+    #   - "8080:80"
     volumes:
       - python-generated:/var/www/generated/python:ro
       - java-generated:/var/www/generated/java:ro
@@ -14,6 +15,52 @@ services:
       # Uncomment for SSL certificates:
       # - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on: []  # Will be populated by profiles
+    networks:
+      - default     # talk to the managers/workers in this compose project
+      - trinket     # reachable by the main Traefik instance
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=trinket-oss_trinket"   # nginx is on two networks; force Traefik to use the one it shares with this container
+      # --- Routing notes (applies to all four languages below) ---
+      # We deliberately do NOT match the bare PathPrefix(`/<lang>`): the main
+      # trinket app also owns routes under that prefix (e.g. GET /pygame, the
+      # language landing page, and GET /pygame/{shortCode}, shared-trinket
+      # pages). A broad PathPrefix would steal those requests and hand them to
+      # this nginx, which proxies to a bare Socket.IO manager with no HTTP
+      # handler for "/" — the request just hangs until timeout.
+      # Instead we match only the exact sub-paths the embed client and admin
+      # pages actually call against the serverside backend:
+      #   /<lang>/socket.io/*  - the only Socket.IO path used (see public/js/embed/server.js)
+      #   /<lang>/stats.json   - admin stats panel
+      #   /<lang>/health       - health check
+      #   /<lang>-vnc/*        - pygame noVNC only
+      #   /<lang>-generated/*  - generated static assets (images, etc.)
+      # shortCodes are always lowercase hex (sha1-derived, 10-12 chars), so
+      # they can never collide with these literal sub-paths.
+      # All four routers below proxy to the SAME nginx backend (one container,
+      # one port) so they share a single explicitly-named service. Traefik's
+      # Docker provider can only auto-link a router to a service when a
+      # container exposes exactly one service; with four routers defined on
+      # this container we must set `.service=` on each explicitly, or Traefik
+      # logs "cannot be linked automatically with multiple Services" and the
+      # routers never come up.
+      - "traefik.http.services.serverside.loadbalancer.server.port=80"
+      - "traefik.http.routers.serverside-pygame.rule=Host(`pyedit.oinf.ch`) && (PathPrefix(`/pygame/socket.io`) || PathPrefix(`/pygame/stats.json`) || PathPrefix(`/pygame/health`) || PathPrefix(`/pygame-vnc`) || PathPrefix(`/pygame-generated`))"
+      - "traefik.http.routers.serverside-pygame.entrypoints=websecure"
+      - "traefik.http.routers.serverside-pygame.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.serverside-pygame.service=serverside"
+      - "traefik.http.routers.serverside-python3.rule=Host(`pyedit.oinf.ch`) && (PathPrefix(`/python3/socket.io`) || PathPrefix(`/python3/stats.json`) || PathPrefix(`/python3/health`) || PathPrefix(`/python3-generated`))"
+      - "traefik.http.routers.serverside-python3.entrypoints=websecure"
+      - "traefik.http.routers.serverside-python3.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.serverside-python3.service=serverside"
+      - "traefik.http.routers.serverside-java.rule=Host(`pyedit.oinf.ch`) && (PathPrefix(`/java/socket.io`) || PathPrefix(`/java/stats.json`) || PathPrefix(`/java/health`) || PathPrefix(`/java-generated`))"
+      - "traefik.http.routers.serverside-java.entrypoints=websecure"
+      - "traefik.http.routers.serverside-java.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.serverside-java.service=serverside"
+      - "traefik.http.routers.serverside-r.rule=Host(`pyedit.oinf.ch`) && (PathPrefix(`/r/socket.io`) || PathPrefix(`/r/stats.json`) || PathPrefix(`/r/health`) || PathPrefix(`/r-generated`))"
+      - "traefik.http.routers.serverside-r.entrypoints=websecure"
+      - "traefik.http.routers.serverside-r.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.serverside-r.service=serverside"
 
   # Python 3 - Manager 8100, Shell 8110
   python3-shell:
@@ -37,6 +84,7 @@ services:
   python3-manager:
     build: ./python/manager
     profiles: ["python3"]
+    restart: unless-stopped
     # Internal only - nginx proxies to this
     expose:
       - "8100"
@@ -65,6 +113,7 @@ services:
   java-manager:
     build: ./java/manager
     profiles: ["java"]
+    restart: unless-stopped
     expose:
       - "8200"
     volumes:
@@ -92,6 +141,7 @@ services:
   r-manager:
     build: ./r/manager
     profiles: ["r"]
+    restart: unless-stopped
     expose:
       - "8300"
     volumes:
@@ -105,19 +155,21 @@ services:
   pygame-worker:
     build: ./pygame/worker
     profiles: ["pygame"]
+    restart: unless-stopped
     expose:
       - "8010"   # Shell socket.io
       - "6080"   # noVNC WebSocket
     volumes:
       - pygame-sessions:/tmp/pygame
-    # Production security options (uncomment for hardened deployment):
-    # mem_limit: 1g
-    # mem_reservation: 750m
-    # cpus: 2.0
+    # Production security options (recommended for the graphical environment):
+    mem_limit: 1g
+    mem_reservation: 750m
+    cpus: 2.0
 
   pygame-manager:
     build: ./pygame/manager
     profiles: ["pygame"]
+    restart: unless-stopped
     expose:
       - "8100"
     volumes:
@@ -136,3 +188,9 @@ volumes:
   r-generated:
   pygame-sessions:
   pygame-generated:
+
+networks:
+  default:
+  trinket:
+    external: true
+    name: trinket-oss_trinket   # the network created by the main docker-compose.yml / Traefik

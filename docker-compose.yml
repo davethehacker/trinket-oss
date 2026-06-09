@@ -1,10 +1,62 @@
 services:
+  traefik:
+    image: traefik:v3.6.1
+    container_name: traefik
+    restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=1.54
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    networks:
+      - trinket
   app:
     build: .
     image: trinket/app:latest
-    ports:
-      - 3000:3000
+#    ports:
+#      - 3000:3000
     container_name: trinket
+    restart: unless-stopped
+    user: root          # bind-mounted source is owned by root on the host;
+                        # the image's default "trinket" user can't write to it (e.g. vite build:css)
+    expose:
+      - 3000          # internal only, no longer published to host
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.trinket.rule=Host(`pyedit.oinf.ch`)"
+      - "traefik.http.routers.trinket.entrypoints=websecure"
+      - "traefik.http.routers.trinket.tls.certresolver=letsencrypt"
+      - "traefik.http.services.trinket.loadbalancer.server.port=3000"
+      # --- Disable new account registration (see DEPLOYMENT.md "Disabling registration") ---
+      # Uncomment all 8 lines below to redirect the signup page and registration
+      # endpoints to the homepage before they ever reach the app. No app code or
+      # config/local.yaml changes needed; just `docker compose up -d app` after
+      # uncommenting.
+      # - "traefik.http.middlewares.block-registration.redirectregex.regex=.*"
+      # - "traefik.http.middlewares.block-registration.redirectregex.replacement=https://pyedit.oinf.ch/"
+      # - "traefik.http.middlewares.block-registration.redirectregex.permanent=false"
+      # - "traefik.http.routers.trinket-block-registration.rule=Host(`pyedit.oinf.ch`) && ((Method(`GET`) && Path(`/signup`)) || (Method(`POST`) && (Path(`/users`) || Path(`/api/users`))))"
+      # - "traefik.http.routers.trinket-block-registration.entrypoints=websecure"
+      # - "traefik.http.routers.trinket-block-registration.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.trinket-block-registration.priority=100"
+      # - "traefik.http.routers.trinket-block-registration.middlewares=block-registration"
+      # - "traefik.http.routers.trinket-block-registration.service=trinket"
     volumes:
       - .:/usr/local/node/trinket
       - node_modules:/usr/local/node/trinket/node_modules
@@ -15,17 +67,20 @@ services:
       - redis
       - mongodb
   redis:
-    image: redis:latest
-    ports:
-      - 16379:6379
+    image: redis:7-alpine
     container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    expose:
+      - 6379          # internal only, no longer published to host
     networks:
       - trinket
   mongodb:
     image: mongo:5
-    ports:
-      - 17017:27017
     container_name: mongodb
+    restart: unless-stopped
+    expose:
+      - 27017         # internal only, no longer published to host
     volumes:
       - mongodb_data:/data/db
     networks:
@@ -38,3 +93,4 @@ volumes:
   node_modules:
   public_components:
   mongodb_data:
+  letsencrypt:
