@@ -39,24 +39,22 @@ services:
       - NODE_ENV=production
     labels:
       - "traefik.enable=true"
+      - "traefik.http.middlewares.strip-brotli.headers.customrequestheaders.Content-Encoding="
       - "traefik.http.routers.trinket.rule=Host(`pyedit.oinf.ch`)"
       - "traefik.http.routers.trinket.entrypoints=websecure"
       - "traefik.http.routers.trinket.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.trinket.middlewares=strip-brotli@docker"
       - "traefik.http.services.trinket.loadbalancer.server.port=3000"
       # --- Disable new account registration (see DEPLOYMENT.md "Disabling registration") ---
-      # Uncomment all 8 lines below to redirect the signup page and registration
-      # endpoints to the homepage before they ever reach the app. No app code or
-      # config/local.yaml changes needed; just `docker compose up -d app` after
-      # uncommenting.
-      # - "traefik.http.middlewares.block-registration.redirectregex.regex=.*"
-      # - "traefik.http.middlewares.block-registration.redirectregex.replacement=https://pyedit.oinf.ch/"
-      # - "traefik.http.middlewares.block-registration.redirectregex.permanent=false"
-      # - "traefik.http.routers.trinket-block-registration.rule=Host(`pyedit.oinf.ch`) && ((Method(`GET`) && Path(`/signup`)) || (Method(`POST`) && (Path(`/users`) || Path(`/api/users`))))"
-      # - "traefik.http.routers.trinket-block-registration.entrypoints=websecure"
-      # - "traefik.http.routers.trinket-block-registration.tls.certresolver=letsencrypt"
-      # - "traefik.http.routers.trinket-block-registration.priority=100"
-      # - "traefik.http.routers.trinket-block-registration.middlewares=block-registration"
-      # - "traefik.http.routers.trinket-block-registration.service=trinket"
+      - "traefik.http.middlewares.block-registration.redirectregex.regex=.*"
+      - "traefik.http.middlewares.block-registration.redirectregex.replacement=https://pyedit.oinf.ch/python"
+      - "traefik.http.middlewares.block-registration.redirectregex.permanent=false"
+      - "traefik.http.routers.trinket-block-registration.rule=Host(`pyedit.oinf.ch`) && ((Method(`GET`) && Path(`/signup`)) || (Method(`POST`) && (Path(`/users`) || Path(`/api/users`))))"
+      - "traefik.http.routers.trinket-block-registration.entrypoints=websecure"
+      - "traefik.http.routers.trinket-block-registration.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.trinket-block-registration.priority=100"
+      - "traefik.http.routers.trinket-block-registration.middlewares=block-registration,strip-brotli@docker"
+      - "traefik.http.routers.trinket-block-registration.service=trinket"
     volumes:
       - .:/usr/local/node/trinket
       - node_modules:/usr/local/node/trinket/node_modules
