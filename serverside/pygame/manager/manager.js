@@ -171,7 +171,8 @@ function connectToWorker(browserId) {
       // Determine file type
       const type = await fileTypeFromBuffer(data.buffer);
 
-      if ((type && /^image/.test(type.mime)) || isSvg(data.buffer)) {
+      // is-svg >= 5 only accepts strings (a Buffer throws)
+      if ((type && /^image/.test(type.mime)) || isSvg(String(data.buffer))) {
         await writeGeneratedFile(data, { type: 'image' });
       } else if (type) {
         // Binary file

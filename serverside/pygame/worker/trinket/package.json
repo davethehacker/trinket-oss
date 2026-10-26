@@ -8,8 +8,11 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
-    "config": "^3.3.9",
-    "socket.io": "^4.7.4"
+    "chokidar": "^6.0.0",
+    "config": "^5.0.1",
+    "socket.io": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=22.23.4"
   }
 }

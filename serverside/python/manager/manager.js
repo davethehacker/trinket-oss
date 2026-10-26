@@ -211,7 +211,8 @@ io.on("connection", (browser) => {
         // try to determine what type of file was added
         data.type = await fileTypeFromBuffer(data.buffer);
 
-        if ((data.type && /^image/.test(data.type.mime)) || isSvg(data.buffer)) {
+        // is-svg >= 5 only accepts strings (a Buffer throws)
+        if ((data.type && /^image/.test(data.type.mime)) || isSvg(String(data.buffer))) {
           const configManager = config.get('manager');
           // write file contents to some web accessible folder
           const imagedir = Math.random().toString(36).slice(-8);
