@@ -4,7 +4,7 @@ var Joi               = require('joi'),
     helpers           = require('../lib/util/helpers'),
     config            = require('config'),
     constants         = require('./constants'),  // Ensure constants is loaded
-    reservedUsernames = yaml.safeLoad(fs.readFileSync(__dirname + '/reserved.yaml', 'utf8')),
+    reservedUsernames = yaml.load(fs.readFileSync(__dirname + '/reserved.yaml', 'utf8')),
     routes;
 
 // Make recaptcha optional when not configured
