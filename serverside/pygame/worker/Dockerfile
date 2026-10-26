@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     # Node.js
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     # Cleanup
     && apt-get clean \
@@ -60,6 +60,9 @@ COPY supervisor/ /etc/supervisor/conf.d/
 
 # Create app directory
 WORKDIR /app
+
+# Refuse to build on an unpatched Node (CVE-2026-111497, Brotli decoder)
+RUN node -e "const f={22:[23,4],24:[22,1],26:[12,1]},[a,b,c]=process.versions.node.split('.').map(Number),m=f[a]; if(!m||b<m[0]||(b===m[0]&&c<m[1])){console.error('Node '+process.version+' is affected by CVE-2026-111497 (Brotli); use >= 22.23.4, 24.22.1 or 26.12.1');process.exit(1)}"
 
 # Copy Node.js application
 COPY trinket/ /app/

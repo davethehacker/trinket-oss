@@ -7,7 +7,9 @@ services:
     container_name: trinket
     volumes:
       - .:/usr/local/node/trinket
-      - node_modules:/usr/local/node/trinket/node_modules
+      # Named after the Node major: modules built for an older Node ABI (e.g.
+      # bcrypt's native binding) must not be reused after a runtime upgrade.
+      - node_modules_node22:/usr/local/node/trinket/node_modules
       - public_components:/usr/local/node/trinket/public/components
     networks:
       - trinket
@@ -35,6 +37,6 @@ networks:
     driver: bridge
 volumes:
   shared-cache:
-  node_modules:
+  node_modules_node22:
   public_components:
   mongodb_data:
