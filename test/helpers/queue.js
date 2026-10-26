@@ -1,11 +1,14 @@
 var sinon   = require('sinon'),
-    snapshotQueue = require('../../lib/util/queues').snapshots();
+    queues  = require('../../lib/util/queues'),
+    // the snapshots queue is disabled and no longer exported by lib/util/queues
+    snapshotQueue = typeof queues.snapshots === 'function' ? queues.snapshots() : null;
 
 module.exports = {
   snapshotQueue : snapshotQueue,
   stub : function() {
     before(function() {
-      sinon.stub(snapshotQueue, 'add', function(data) {
+      if (!snapshotQueue) return;
+      sinon.stub(snapshotQueue, 'add').callsFake(function(data) {
         return {
           then : function(f) {
             f();
@@ -15,7 +18,7 @@ module.exports = {
     });
 
     after(function() {
-      snapshotQueue.add.restore();
+      if (snapshotQueue) snapshotQueue.add.restore();
     });
   }
 };

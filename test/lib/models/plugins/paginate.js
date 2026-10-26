@@ -26,10 +26,10 @@ describe('paginate plugin', function() {
       schema, options;
 
   beforeEach(function() {
-    model.find.reset();
-    query.sort.reset();
-    query.limit.reset();
-    query.exec.reset();
+    model.find.resetHistory();
+    query.sort.resetHistory();
+    query.limit.resetHistory();
+    query.exec.resetHistory();
     schema  = {
       statics : {}
     };

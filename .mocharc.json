@@ -1,0 +1,8 @@
+{
+  "spec": ["test/lib/**/*.js"],
+  "require": ["test/setup.js"],
+  "reporter": "spec",
+  "check-leaks": true,
+  "timeout": 10000,
+  "exit": true
+}

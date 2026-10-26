@@ -5,8 +5,13 @@ var _            = require('underscore'),
     instance;
 
 function DB() {
+  var self = this;
   this._isConnected = false;
-  _.bindAll(this, 'ensureConnection', 'reset');
+  // Explicit wrappers instead of _.bindAll: underscore >= 1.9 no longer uses
+  // native bind, so bound functions report length 0 and mocha would call them
+  // as synchronous hooks without a `done` callback.
+  this.ensureConnection = function(done) { return DB.prototype.ensureConnection.call(self, done); };
+  this.reset = function(done) { return DB.prototype.reset.call(self, done); };
 }
 
 _.extend(DB.prototype, {
