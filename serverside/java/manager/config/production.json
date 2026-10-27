@@ -1,0 +1,9 @@
+{
+  "manager": {
+    "generatedDir": "/tmp/java-generated",
+    "generatedUrl": "http://localhost:8080/java-generated"
+  },
+  "shells": [
+    "http://java-shell:8010"
+  ]
+}

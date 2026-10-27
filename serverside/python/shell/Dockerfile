@@ -1,5 +1,7 @@
 # FROM phusion/passenger-nodejs:2.0.1
-FROM python:3.10-bullseye
+# Debian 11 (bullseye) is end-of-life and its security packages are gone from
+# the mirrors, so apt fails there; same Python 3.10 on Debian 12.
+FROM python:3.10-bookworm
 
 # ARG DEBIAN_FRONTEND=noninteractive
 

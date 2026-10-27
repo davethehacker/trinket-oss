@@ -4,10 +4,11 @@
   
 FROM amazoncorretto:8
 
+# amazoncorretto:8 is Amazon Linux 2023, which ships curl-minimal; installing
+# the full curl package conflicts with it, and curl-minimal is enough here.
 RUN yum -y install python3 \
     python3-pip \
     shadow-utils \
-    curl \
     tar \
     gzip
 

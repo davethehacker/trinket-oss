@@ -309,7 +309,10 @@ app:
   embed:
     proxy: 'http://127.0.0.1/proxy'
     skulpt:
-      local: false # when true pulls from bower install instead of cdn
+      # Use the copy shipped in public/components (public-components.tgz).
+      # Set to false only when aws.buckets.cdn points at a real CDN that
+      # hosts skulpt; the default cdn host is a placeholder.
+      local: true
       min: false # when true uses minified local copy of skulpt core
     common:
       skulpt_js:

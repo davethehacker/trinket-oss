@@ -5,6 +5,10 @@ const root = import.meta.dirname;
 
 export default defineConfig({
   // Build CSS assets only (Hapi serves the app)
+  // outDir is public/ itself, so don't also copy public/ into it: the copy
+  // overwrites files with themselves and fails (EACCES) when the container
+  // user cannot write to the bind-mounted checkout.
+  publicDir: false,
   build: {
     outDir: 'public',
     emptyOutDir: false,
